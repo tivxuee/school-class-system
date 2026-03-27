@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 let currentUser = null;
 let stream = null;
 let photoBlob = null;
@@ -58,6 +58,15 @@ function logout() {
 
 // 显示主页面
 function showMainPage() {
+  // 家长单独页面
+  if (currentUser.role === 'parent') {
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('parentPage').classList.remove('hidden');
+    document.getElementById('parentName').textContent = currentUser.name;
+    loadParentInfo();
+    return;
+  }
+
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('mainPage').classList.remove('hidden');
   document.getElementById('userName').textContent = currentUser.name;
@@ -188,6 +197,7 @@ function renderStudents(students) {
       const percent = s.total_classes > 0 ? (s.used_classes / s.total_classes * 100) : 0;
       const isSelected = selectedStudents.has(s.id);
       const deleteBtn = isAdmin ? `<button class="btn btn-sm btn-danger" onclick="deleteStudent(${s.id})" style="width: auto;">删除</button>` : '';
+      const parentBtn = isAdmin ? `<button class="btn btn-sm btn-warning" onclick="showParentAccountModal(${s.id}, '${s.name}', ${s.parent_user_id || 'null'})" style="width: auto;">👨‍👩‍👧 账号</button>` : '';
       return `
         <div class="list-card" style="${isSelected ? 'border: 2px solid #1890ff;' : ''}">
           <div class="list-card-row">
@@ -196,9 +206,11 @@ function renderStudents(students) {
                 ${isSelected ? 'checked' : ''} onchange="toggleStudent(${s.id})" 
                 style="width: 20px; height: 20px; cursor: pointer;">` : ''}
               <span class="list-card-title">${s.name}</span>
+              ${s.parent_user_id ? '<span style="font-size:11px; color:#52c41a; background:#f6ffed; border:1px solid #b7eb8f; padding:1px 6px; border-radius:10px;">已开通账号</span>' : ''}
             </div>
             <div style="display: flex; gap: 8px;">
               <button class="btn btn-sm" onclick="viewStudentPayments(${s.id})" style="width: auto;">付款记录</button>
+              ${parentBtn}
               ${deleteBtn}
             </div>
           </div>
@@ -767,4 +779,86 @@ async function viewTeacherStudents(teacherId, teacherName) {
   showTab('assignments');
   document.getElementById('assignmentTeacher').value = teacherId;
   loadTeacherAssignments();
+}
+
+// ========== 家长功能 ==========
+let currentParentStudentId = null;
+
+// 加载家长的孩子信息
+async function loadParentInfo() {
+  try {
+    const student = await api('/parent/my-info');
+    const remaining = student.total_classes - student.used_classes;
+    const percent = student.total_classes > 0 ? Math.round(student.used_classes / student.total_classes * 100) : 0;
+
+    document.getElementById('parentTotal').textContent = student.total_classes;
+    document.getElementById('parentUsed').textContent = student.used_classes;
+    document.getElementById('parentRemain').textContent = remaining;
+    document.getElementById('parentProgress').textContent = percent + '%';
+    document.getElementById('parentProgressBar').style.width = percent + '%';
+    // 进度条颜色
+    const bar = document.getElementById('parentProgressBar');
+    bar.style.background = remaining <= 2 ? '#ff4d4f' : remaining <= 5 ? '#faad14' : '#1890ff';
+
+    // 更新顶部标题显示学生名
+    document.getElementById('parentName').textContent = student.name;
+
+    // 加载上课记录
+    loadParentRecords();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadParentRecords() {
+  try {
+    const records = await api('/parent/class-records');
+    const container = document.getElementById('parentRecordsList');
+    if (records.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><p>暂无上课记录</p></div>';
+      return;
+    }
+    container.innerHTML = records.map(r => `
+      <div class="list-card">
+        <div class="list-card-row">
+          <span class="list-card-title">${r.class_date}</span>
+          <span style="font-size:13px; color:#666;">⏱️ ${r.duration || 60}分钟</span>
+        </div>
+        <div class="list-card-row">
+          <span class="list-card-label">老师: ${r.teacher_name}</span>
+          ${r.photo_path ? `<a href="/uploads/${r.photo_path}" target="_blank" style="color:#1890ff; font-size:13px;">📷 查看照片</a>` : '<span style="color:#999; font-size:13px;">无照片</span>'}
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// 显示设置家长账号弹窗（admin用）
+function showParentAccountModal(studentId, studentName, parentUserId) {
+  currentParentStudentId = studentId;
+  document.getElementById('parentAccountStudentName').textContent = `学生: ${studentName}`;
+  document.getElementById('parentUsername').value = '';
+  document.getElementById('parentPassword').value = '';
+  showModal('parentAccountModal');
+}
+
+// 保存家长账号
+async function saveParentAccount() {
+  const username = document.getElementById('parentUsername').value.trim();
+  const password = document.getElementById('parentPassword').value.trim();
+  if (!username || !password) return alert('账号和密码不能为空');
+  try {
+    await api(`/students/${currentParentStudentId}/parent-account`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    hideModal('parentAccountModal');
+    alert('账号设置成功！家长可使用此账号登录查看课时。');
+    loadStudents();
+  } catch (err) {
+    alert(err.message || '设置失败');
+  }
 }

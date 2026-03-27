@@ -50,6 +50,68 @@ app.post('/api/login', (req, res) => {
   });
 });
 
+// ========== 家长账号管理 ==========
+// 为学生创建/更新家长账号（仅admin）
+app.post('/api/students/:id/parent-account', auth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: '无权限' });
+  const studentId = req.params.id;
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: '账号和密码不能为空' });
+
+  // 先查学生信息
+  db.get('SELECT * FROM students WHERE id = ?', [studentId], (err, student) => {
+    if (err || !student) return res.status(404).json({ error: '学生不存在' });
+    const hashed = bcrypt.hashSync(password, 10);
+
+    if (student.parent_user_id) {
+      // 已有账号，更新
+      db.run('UPDATE users SET username=?, password=? WHERE id=?',
+        [username, hashed, student.parent_user_id], function(err) {
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ message: '账号已更新' });
+        });
+    } else {
+      // 创建新账号
+      db.run('INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)',
+        [username, hashed, 'parent', student.name], function(err) {
+          if (err) return res.status(500).json({ error: err.message });
+          const parentId = this.lastID;
+          db.run('UPDATE students SET parent_user_id=? WHERE id=?', [parentId, studentId], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: '账号已创建', parent_user_id: parentId });
+          });
+        });
+    }
+  });
+});
+
+// 家长查看自己孩子的课时信息
+app.get('/api/parent/my-info', auth, (req, res) => {
+  if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
+  db.get('SELECT * FROM students WHERE parent_user_id = ?', [req.user.id], (err, student) => {
+    if (err || !student) return res.status(404).json({ error: '未找到关联学生' });
+    res.json(student);
+  });
+});
+
+// 家长查看孩子的上课记录
+app.get('/api/parent/class-records', auth, (req, res) => {
+  if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
+  db.get('SELECT id FROM students WHERE parent_user_id = ?', [req.user.id], (err, student) => {
+    if (err || !student) return res.status(404).json({ error: '未找到关联学生' });
+    db.all(`
+      SELECT cr.*, u.name as teacher_name
+      FROM class_records cr
+      JOIN users u ON cr.teacher_id = u.id
+      WHERE cr.student_id = ?
+      ORDER BY cr.class_date DESC
+    `, [student.id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  });
+});
+
 // ========== 学生管理 ==========
 // 获取所有学生（老师只能看到关联的学生）
 app.get('/api/students', auth, (req, res) => {

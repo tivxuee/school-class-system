@@ -157,6 +157,55 @@
     </p>
   </div>
 
+  <!-- 家长专属页面 -->
+  <div id="parentPage" class="main-container hidden">
+    <div class="header">
+      <h1>🏫 课时查询</h1>
+      <div class="user-info">
+        <span id="parentName"></span>
+        <button class="btn btn-sm" onclick="logout()">退出</button>
+      </div>
+    </div>
+    <div class="content">
+      <!-- 课时概览 -->
+      <div class="card" id="parentInfoCard">
+        <h3>📊 课时概览</h3>
+        <div style="display: flex; gap: 12px; text-align: center;">
+          <div style="flex:1; background:#f0f7ff; padding:16px; border-radius:10px;">
+            <div style="color:#666; font-size:12px; margin-bottom:6px;">总课时</div>
+            <div style="font-size:28px; font-weight:bold; color:#1890ff;" id="parentTotal">-</div>
+          </div>
+          <div style="flex:1; background:#f0fff4; padding:16px; border-radius:10px;">
+            <div style="color:#666; font-size:12px; margin-bottom:6px;">已上</div>
+            <div style="font-size:28px; font-weight:bold; color:#52c41a;" id="parentUsed">-</div>
+          </div>
+          <div style="flex:1; background:#fff7e6; padding:16px; border-radius:10px;">
+            <div style="color:#666; font-size:12px; margin-bottom:6px;">剩余</div>
+            <div style="font-size:28px; font-weight:bold; color:#fa8c16;" id="parentRemain">-</div>
+          </div>
+        </div>
+        <!-- 进度条 -->
+        <div style="margin-top:16px;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:#999; margin-bottom:6px;">
+            <span>课时使用进度</span>
+            <span id="parentProgress">0%</span>
+          </div>
+          <div style="height:8px; background:#f0f0f0; border-radius:4px; overflow:hidden;">
+            <div id="parentProgressBar" style="height:100%; background:#1890ff; border-radius:4px; width:0%; transition:width 0.5s;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 上课记录 -->
+      <div class="card">
+        <h3>📋 上课记录</h3>
+        <div id="parentRecordsList">
+          <div class="empty-state"><div class="empty-state-icon">📝</div><p>暂无上课记录</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 主页面 -->
   <div id="mainPage" class="main-container hidden">
     <div class="header">
@@ -408,6 +457,26 @@
         </select>
       </div>
       <button class="btn btn-success" onclick="confirmAddAssignment()">确认分配</button>
+    </div>
+  </div>
+
+  <!-- 设置家长账号弹窗 -->
+  <div id="parentAccountModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>👨‍👩‍👧 家长登录账号</h3>
+        <span class="close" onclick="hideModal('parentAccountModal')">&times;</span>
+      </div>
+      <p id="parentAccountStudentName" style="color:#666; margin-bottom:16px; font-size:14px;"></p>
+      <div class="form-group">
+        <label>登录账号</label>
+        <input type="text" id="parentUsername" placeholder="设置家长登录账号">
+      </div>
+      <div class="form-group">
+        <label>登录密码</label>
+        <input type="password" id="parentPassword" placeholder="设置登录密码">
+      </div>
+      <button class="btn btn-success" onclick="saveParentAccount()">保存账号</button>
     </div>
   </div>
 

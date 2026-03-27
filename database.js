@@ -4,12 +4,12 @@ const path = require('path');
 const db = new sqlite3.Database(path.join(__dirname, 'school.db'));
 
 db.serialize(() => {
-  // 用户表（admin和老师）
+  // 用户表（admin、老师、家长）
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('admin', 'teacher')),
+    role TEXT NOT NULL CHECK(role IN ('admin', 'teacher', 'parent')),
     name TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
@@ -21,8 +21,14 @@ db.serialize(() => {
     phone TEXT,
     total_classes INTEGER DEFAULT 0,
     used_classes INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    parent_user_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (parent_user_id) REFERENCES users(id)
   )`);
+
+  // 兼容旧数据库：自动添加缺失列
+  db.run(`ALTER TABLE students ADD COLUMN parent_user_id INTEGER`, () => {}); // 报错忽略（列已存在）
+  db.run(`ALTER TABLE class_records ADD COLUMN duration INTEGER DEFAULT 60`, () => {}); // 报错忽略
 
   // 付款记录表
   db.run(`CREATE TABLE IF NOT EXISTS payments (
