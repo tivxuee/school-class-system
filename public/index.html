@@ -1,482 +1,539 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Vivo Music School课时管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIVO MUSIC SCHOOL – Class Management</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; }
-    
-    /* 登录页 */
-    .login-box { max-width: 400px; margin: 0 auto; padding: 60px 20px; }
-    .login-box h1 { text-align: center; margin-bottom: 30px; color: #333; font-size: 24px; }
-    .login-box .form-group { margin-bottom: 20px; }
-    .login-box .form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 14px; }
-    .login-box .form-group input { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; -webkit-appearance: none; }
-    .login-box .btn { width: 100%; padding: 14px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; }
-    .login-box .btn:active { background: #096dd9; }
-    
-    /* 主布局 */
-    .main-container { display: flex; flex-direction: column; min-height: 100vh; }
-    
-    /* 顶部栏 */
-    .header { background: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-    .header h1 { font-size: 18px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-info { display: flex; align-items: center; gap: 8px; }
-    .user-info span { font-size: 13px; }
-    .user-info .btn { width: auto; padding: 6px 12px; font-size: 13px; }
-    
-    /* 导航 - 移动端横向滚动 */
-    .nav { background: white; padding: 8px 12px; border-bottom: 1px solid #eee; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-    .nav::-webkit-scrollbar { display: none; }
-    .nav button { padding: 8px 16px; margin-right: 8px; border: none; background: #f5f5f5; cursor: pointer; border-radius: 20px; font-size: 13px; color: #666; }
-    .nav button.active { background: #1890ff; color: white; }
-    
-    /* 内容区 */
-    .content { flex: 1; padding: 16px; overflow-y: auto; }
-    
-    /* 卡片 */
-    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .card h3 { margin-bottom: 16px; color: #333; font-size: 16px; display: flex; align-items: center; gap: 8px; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .card-header h3 { margin: 0; }
-    
-    /* 统计卡片 - 移动端单列 */
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-    .stat-card { background: white; padding: 16px 8px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .stat-card h4 { color: #666; font-size: 12px; margin-bottom: 8px; font-weight: normal; }
-    .stat-card .number { font-size: 24px; font-weight: bold; color: #1890ff; }
-    
-    /* 表单 */
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; margin-bottom: 6px; color: #666; font-size: 14px; }
-    .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; -webkit-appearance: none; background: white; }
-    .form-group input:focus, .form-group select:focus { outline: none; border-color: #1890ff; }
-    
-    /* 按钮 */
-    .btn { width: 100%; padding: 12px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; }
-    .btn:active { background: #096dd9; }
-    .btn-success { background: #52c41a; }
-    .btn-success:active { background: #389e0d; }
-    .btn-warning { background: #faad14; }
-    .btn-danger { background: #ff4d4f; }
-    .btn-sm { width: auto; padding: 8px 16px; font-size: 13px; }
-    .btn-group { display: flex; gap: 12px; margin-top: 16px; }
-    .btn-group .btn { flex: 1; }
-    
-    /* 表格 - 移动端卡片式 */
-    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 600px; }
-    th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #f0f0f0; }
-    th { background: #fafafa; font-weight: 500; color: #666; font-size: 13px; }
-    tr:active { background: #f5f5f5; }
-    
-    /* 移动端列表卡片 */
-    .list-card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .list-card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .list-card-row:last-child { margin-bottom: 0; }
-    .list-card-label { color: #999; font-size: 13px; }
-    .list-card-value { color: #333; font-size: 14px; font-weight: 500; }
-    .list-card-title { font-size: 16px; font-weight: 500; color: #333; margin-bottom: 12px; }
-    
-    /* 进度条 */
-    .progress-bar { width: 100%; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; background: #52c41a; transition: width 0.3s; border-radius: 4px; }
-    .progress-text { font-size: 12px; color: #666; margin-top: 4px; }
-    
-    /* 标签 */
-    .badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
-    .badge-success { background: #f6ffed; color: #52c41a; }
-    .badge-warning { background: #fffbe6; color: #faad14; }
-    .badge-error { background: #fff2f0; color: #ff4d4f; }
-    
-    /* 相机 */
-    .camera-container { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; }
-    #video { width: 100%; height: 100%; object-fit: cover; }
-    .camera-btn { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 64px; height: 64px; border-radius: 50%; background: #ff4d4f; border: 4px solid white; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-    .camera-btn:active { transform: translateX(-50%) scale(0.95); }
-    .preview-img { width: 100%; border-radius: 12px; margin-top: 12px; }
-    
-    /* 弹窗 */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-end; z-index: 1000; }
-    .modal.active { display: flex; }
-    .modal-content { background: white; padding: 20px; border-radius: 20px 20px 0 0; width: 100%; max-height: 90vh; overflow-y: auto; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-header h3 { font-size: 18px; }
-    .close { font-size: 24px; cursor: pointer; color: #999; padding: 4px; }
-    
-    /* 空状态 */
-    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
-    .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
-    
-    /* 隐藏 */
-    .hidden { display: none !important; }
-    
-    /* 响应式 - 平板及以上 */
-    @media (min-width: 768px) {
-      .login-box { padding: 100px 20px; }
-      .login-box h1 { font-size: 28px; }
-      .header { padding: 15px 30px; }
-      .header h1 { font-size: 20px; }
-      .nav { padding: 10px 30px; }
-      .nav button { padding: 10px 20px; font-size: 14px; }
-      .content { padding: 30px; }
-      .stats { gap: 20px; }
-      .stat-card { padding: 24px; }
-      .stat-card h4 { font-size: 14px; }
-      .stat-card .number { font-size: 32px; }
-      .card { padding: 24px; }
-      .modal { align-items: center; }
-      .modal-content { border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    /* ===== LOGIN ===== */
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+    .login-box { width: 100%; max-width: 420px; background: rgba(255,255,255,0.97); padding: 48px 40px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo .logo-icon { font-size: 48px; display: block; margin-bottom: 8px; }
+    .login-logo h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; }
+    .login-logo p { color: #888; font-size: 13px; margin-top: 4px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 6px; color: #555; font-size: 14px; font-weight: 500; }
+    .form-group label .label-en { font-size: 12px; color: #aaa; margin-left: 6px; font-weight: 400; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 16px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 15px;
+      transition: border-color 0.2s; background: #fafafa;
     }
-    
-    /* 桌面端 */
-    @media (min-width: 1024px) {
-      .stats { grid-template-columns: repeat(3, 1fr); }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #e94560; background: #fff; }
+    .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.2s; }
+    .btn-block { width: 100%; }
+    .btn-primary { background: linear-gradient(135deg, #e94560, #c73652); color: white; box-shadow: 0 4px 15px rgba(233,69,96,0.35); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(233,69,96,0.45); }
+    .btn-success { background: #52c41a; color: white; }
+    .btn-success:hover { background: #73d13d; }
+    .btn-warning { background: #faad14; color: white; }
+    .btn-danger { background: #ff4d4f; color: white; }
+    .btn-sm { padding: 6px 14px; font-size: 13px; }
+    .login-hint { text-align: center; margin-top: 20px; color: #bbb; font-size: 12px; }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: linear-gradient(135deg, #1a1a2e, #0f3460);
+      padding: 0 30px;
+      display: flex; justify-content: space-between; align-items: center;
+      height: 60px; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-brand .brand-icon { font-size: 26px; }
+    .header-brand h1 { font-size: 18px; color: white; font-weight: 700; letter-spacing: 0.5px; }
+    .header-brand h1 span { color: #e94560; }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-name { color: rgba(255,255,255,0.9); font-size: 14px; }
+    .btn-logout { padding: 7px 18px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+    /* ===== NAV ===== */
+    .nav { background: white; padding: 0 24px; border-bottom: 1px solid #eee; display: flex; gap: 4px; overflow-x: auto; }
+    .nav-btn { padding: 14px 18px; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent; color: #666; font-size: 14px; font-weight: 500; white-space: nowrap; transition: all 0.2s; }
+    .nav-btn:hover { color: #e94560; }
+    .nav-btn.active { border-bottom-color: #e94560; color: #e94560; }
+
+    /* ===== CONTENT ===== */
+    .content { padding: 28px 30px; }
+    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .card-title { font-size: 16px; font-weight: 600; color: #1a1a2e; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .card-title .title-sub { font-size: 12px; color: #aaa; font-weight: 400; }
+
+    /* ===== STATS ===== */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: white; padding: 20px 24px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 4px solid #e94560; }
+    .stat-card h4 { color: #888; font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+    .stat-card .stat-en { color: #bbb; font-size: 11px; }
+    .stat-card .number { font-size: 30px; font-weight: 700; color: #1a1a2e; margin-top: 6px; }
+
+    /* ===== TABLE ===== */
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    th { background: #fafafa; font-weight: 600; color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    tr:hover td { background: #fafcff; }
+
+    /* ===== BADGE ===== */
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .badge-success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .badge-warning { background: #fffbe6; color: #d46b08; border: 1px solid #ffe58f; }
+    .badge-error { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+    .badge-info { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+    .badge-purple { background: #f9f0ff; color: #722ed1; border: 1px solid #d3adf7; }
+
+    /* ===== PROGRESS ===== */
+    .progress-wrap { display: flex; align-items: center; gap: 8px; }
+    .progress-bar { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 60px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #52c41a, #95de64); border-radius: 4px; transition: width 0.3s; }
+    .progress-fill.low { background: linear-gradient(90deg, #ff4d4f, #ff7875); }
+    .progress-label { font-size: 13px; color: #333; white-space: nowrap; }
+
+    /* ===== MODAL ===== */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .modal-title h3 { font-size: 16px; font-weight: 600; color: #1a1a2e; }
+    .modal-title p { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .close { font-size: 22px; cursor: pointer; color: #bbb; line-height: 1; padding: 2px; }
+    .close:hover { color: #666; }
+
+    /* ===== CAMERA ===== */
+    .camera-container { position: relative; width: 100%; max-width: 400px; margin: 0 auto; border-radius: 8px; overflow: hidden; background: #000; }
+    #video { width: 100%; display: block; }
+    #canvas { display: none; }
+    .camera-btn { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); width: 56px; height: 56px; border-radius: 50%; background: #e94560; border: 4px solid white; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .camera-btn:hover { background: #c73652; }
+    .preview-img { max-width: 100%; border-radius: 8px; margin-top: 10px; display: block; }
+
+    /* ===== PARENT PAGE ===== */
+    .parent-hero { background: linear-gradient(135deg, #1a1a2e, #0f3460); color: white; border-radius: 16px; padding: 32px; margin-bottom: 24px; }
+    .parent-hero h2 { font-size: 20px; font-weight: 700; }
+    .parent-hero p { color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 4px; }
+    .parent-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+    .parent-stat { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; }
+    .parent-stat .p-label { font-size: 12px; color: rgba(255,255,255,0.65); }
+    .parent-stat .p-value { font-size: 28px; font-weight: 700; color: white; margin-top: 6px; }
+    .parent-stat .p-value.highlight { color: #ffd666; }
+    .record-item { padding: 14px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .record-item:last-child { border-bottom: none; }
+    .record-info h4 { font-size: 14px; color: #333; }
+    .record-info p { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .record-meta { text-align: right; font-size: 12px; color: #888; }
+
+    /* ===== CHECKIN DURATION ===== */
+    .duration-input { display: flex; align-items: center; gap: 8px; }
+    .duration-input input { flex: 1; }
+    .duration-input span { color: #888; font-size: 13px; white-space: nowrap; }
+
+    /* ===== UTILS ===== */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .text-muted { color: #aaa; font-size: 13px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-20 { margin-top: 20px; }
+    .flex { display: flex; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .gap-8 { gap: 8px; }
+    .no-data { text-align: center; color: #bbb; padding: 40px 0; }
+    .no-data .no-data-icon { font-size: 40px; margin-bottom: 8px; }
+
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: 1fr; }
+      .parent-stats { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+      .header { padding: 0 16px; }
+      .nav { padding: 0 8px; }
+      .modal-content { padding: 20px; }
     }
   </style>
 </head>
 <body>
-  <!-- 登录页面 -->
-  <div id="loginPage" class="login-box">
-    <h1>🏫 学校课时管理系统</h1>
-    <form id="loginForm">
-      <div class="form-group">
-        <label>用户名</label>
-        <input type="text" id="username" placeholder="请输入用户名" required autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>密码</label>
-        <input type="password" id="password" placeholder="请输入密码" required autocomplete="current-password">
-      </div>
-      <button type="submit" class="btn">登录</button>
-    </form>
-    <p style="text-align: center; margin-top: 20px; color: #999; font-size: 13px;">
-      默认账号: admin / admin123
-    </p>
-  </div>
 
-  <!-- 家长专属页面 -->
-  <div id="parentPage" class="main-container hidden">
-    <div class="header">
-      <h1>🏫 课时查询</h1>
-      <div class="user-info">
-        <span id="parentName"></span>
-        <button class="btn btn-sm" onclick="logout()">退出</button>
+  <!-- ========== LOGIN PAGE ========== -->
+  <div id="loginPage" class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <span class="logo-icon">🎵</span>
+        <h1>VIVO <span style="color:#e94560">MUSIC</span> SCHOOL</h1>
+        <p>Class Management System &nbsp;·&nbsp; 课时管理系统</p>
       </div>
-    </div>
-    <div class="content">
-      <!-- 课时概览 -->
-      <div class="card" id="parentInfoCard">
-        <h3>📊 课时概览</h3>
-        <div style="display: flex; gap: 12px; text-align: center;">
-          <div style="flex:1; background:#f0f7ff; padding:16px; border-radius:10px;">
-            <div style="color:#666; font-size:12px; margin-bottom:6px;">总课时</div>
-            <div style="font-size:28px; font-weight:bold; color:#1890ff;" id="parentTotal">-</div>
-          </div>
-          <div style="flex:1; background:#f0fff4; padding:16px; border-radius:10px;">
-            <div style="color:#666; font-size:12px; margin-bottom:6px;">已上</div>
-            <div style="font-size:28px; font-weight:bold; color:#52c41a;" id="parentUsed">-</div>
-          </div>
-          <div style="flex:1; background:#fff7e6; padding:16px; border-radius:10px;">
-            <div style="color:#666; font-size:12px; margin-bottom:6px;">剩余</div>
-            <div style="font-size:28px; font-weight:bold; color:#fa8c16;" id="parentRemain">-</div>
-          </div>
+      <div id="loginForm">
+        <div class="form-group">
+          <label>Username <span class="label-en">用户名</span></label>
+          <input type="text" id="username" placeholder="Enter your username / 请输入用户名" autocomplete="username"
+            onkeydown="if(event.key==='Enter'){document.getElementById('password').focus();}">
         </div>
-        <!-- 进度条 -->
-        <div style="margin-top:16px;">
-          <div style="display:flex; justify-content:space-between; font-size:12px; color:#999; margin-bottom:6px;">
-            <span>课时使用进度</span>
-            <span id="parentProgress">0%</span>
-          </div>
-          <div style="height:8px; background:#f0f0f0; border-radius:4px; overflow:hidden;">
-            <div id="parentProgressBar" style="height:100%; background:#1890ff; border-radius:4px; width:0%; transition:width 0.5s;"></div>
-          </div>
+        <div class="form-group">
+          <label>Password <span class="label-en">密码</span></label>
+          <input type="password" id="password" placeholder="Enter your password / 请输入密码" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter'){login();}">
         </div>
+        <button type="button" class="btn btn-primary btn-block" onclick="login()">Log In &nbsp;/&nbsp; 登录</button>
       </div>
-
-      <!-- 上课记录 -->
-      <div class="card">
-        <h3>📋 上课记录</h3>
-        <div id="parentRecordsList">
-          <div class="empty-state"><div class="empty-state-icon">📝</div><p>暂无上课记录</p></div>
-        </div>
-      </div>
+      <p class="login-hint">Default admin: admin / admin123</p>
     </div>
   </div>
 
-  <!-- 主页面 -->
-  <div id="mainPage" class="main-container hidden">
+  <!-- ========== MAIN PAGE ========== -->
+  <div id="mainPage" class="hidden">
     <div class="header">
-      <h1>🏫 学校课时管理系统</h1>
+      <div class="header-brand">
+        <span class="brand-icon">🎵</span>
+        <h1>VIVO <span>MUSIC</span> SCHOOL</h1>
+      </div>
       <div class="user-info">
-        <span id="userName"></span>
+        <span class="user-name" id="userName"></span>
         <span id="userRole" class="badge"></span>
-        <button class="btn btn-sm" onclick="logout()">退出</button>
+        <button class="btn-logout" onclick="logout()">Log Out / 退出</button>
       </div>
     </div>
-    
+
     <div class="nav" id="nav">
-      <button class="active" onclick="showTab('dashboard')">📊 仪表盘</button>
-      <button onclick="showTab('checkin')">📸 签到</button>
-      <button id="studentsTab" onclick="showTab('students')" class="hidden">👨‍🎓 学生</button>
-      <button id="paymentsTab" onclick="showTab('payments')" class="hidden">💰 付款</button>
-      <button id="teachersTab" onclick="showTab('teachers')" class="hidden">👨‍🏫 老师</button>
-      <button id="assignmentsTab" onclick="showTab('assignments')" class="hidden">👥 师生关联</button>
-      <button id="salaryTab" onclick="showTab('salary')" class="hidden">💵 工资</button>
+      <button class="nav-btn active" onclick="showTab('dashboard', this)">📊 Dashboard / 概览</button>
+      <button class="nav-btn" id="checkinTab" onclick="showTab('checkin', this)">📸 Check-in / 签到</button>
+      <button class="nav-btn" id="studentsTab" onclick="showTab('students', this)">👨‍🎓 Students / 学生</button>
+      <button class="nav-btn" id="paymentsTab" onclick="showTab('payments', this)">💰 Payments / 付款</button>
+      <button class="nav-btn" id="teachersTab" onclick="showTab('teachers', this)">👩‍🏫 Teachers / 老师</button>
+      <button class="nav-btn" id="assignTab" onclick="showTab('assign', this)">🔗 Assign / 师生关联</button>
+      <button class="nav-btn" id="salaryTab" onclick="showTab('salary', this)">💵 Salary / 工资</button>
     </div>
 
     <div class="content">
-      <!-- 仪表盘 -->
+
+      <!-- ===== DASHBOARD ===== -->
       <div id="dashboard" class="tab-content">
         <div class="stats">
           <div class="stat-card">
-            <h4>学生总数</h4>
+            <h4>TOTAL STUDENTS</h4>
+            <div class="stat-en">学生总数</div>
             <div class="number" id="statStudents">0</div>
           </div>
           <div class="stat-card">
-            <h4>今日课时</h4>
+            <h4>TODAY'S CLASSES</h4>
+            <div class="stat-en">今日课时</div>
             <div class="number" id="statToday">0</div>
           </div>
           <div class="stat-card">
-            <h4>本月收入</h4>
+            <h4>MONTHLY INCOME</h4>
+            <div class="stat-en">本月收入</div>
             <div class="number" id="statIncome">¥0</div>
           </div>
         </div>
         <div class="card">
-          <h3>📋 最近签到记录</h3>
-          <div id="recentRecordsList"></div>
+          <div class="card-title">📋 Recent Check-ins <span class="title-sub">/ 最近签到记录</span></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date / 日期</th>
+                <th>Teacher / 老师</th>
+                <th>Student / 学生</th>
+                <th>Duration / 时长</th>
+                <th>Photo / 照片</th>
+              </tr>
+            </thead>
+            <tbody id="recentRecords"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- 课时签到 -->
+      <!-- ===== CHECK-IN ===== -->
       <div id="checkin" class="tab-content hidden">
         <div class="card">
-          <h3>📸 课时签到</h3>
+          <div class="card-title">📸 Class Check-in <span class="title-sub">/ 课时签到</span></div>
           <div class="form-group">
-            <label>选择学生</label>
-            <select id="checkinStudent"></select>
+            <label>Student <span class="label-en">选择学生</span></label>
+            <select id="checkinStudent" style="width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;"></select>
           </div>
           <div class="form-group">
-            <label>上课日期</label>
-            <input type="date" id="checkinDate">
+            <label>Class Date <span class="label-en">上课日期</span></label>
+            <input type="date" id="checkinDate" style="width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;">
           </div>
           <div class="form-group">
-            <label>课时时长（分钟）</label>
-            <input type="number" id="checkinDuration" value="60" min="1" max="180">
+            <label>Duration (minutes) <span class="label-en">课时时长（分钟）</span></label>
+            <div class="duration-input">
+              <input type="number" id="checkinDuration" value="60" min="15" max="360" step="15" style="width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;">
+              <span>min / 分钟</span>
+            </div>
           </div>
-          <div class="camera-container">
+          <div class="camera-container mt-16">
             <video id="video" autoplay playsinline></video>
-            <button class="camera-btn" onclick="takePhoto()" title="拍照"></button>
+            <canvas id="canvas"></canvas>
+            <button class="camera-btn" onclick="takePhoto()" title="Take Photo / 拍照"></button>
           </div>
-          <canvas id="canvas" style="display: none;"></canvas>
           <img id="photoPreview" class="preview-img hidden">
-          <div class="btn-group">
-            <button class="btn btn-success" onclick="submitCheckin()">✅ 确认签到</button>
-            <button class="btn" onclick="retakePhoto()">🔄 重拍</button>
+          <div class="flex gap-8 mt-20">
+            <button class="btn btn-success" onclick="submitCheckin()">✅ Confirm / 确认签到</button>
+            <button class="btn" style="background:#f0f0f0;color:#666;" onclick="retakePhoto()">🔄 Retake / 重拍</button>
           </div>
         </div>
       </div>
 
-      <!-- 学生管理 -->
+      <!-- ===== STUDENTS ===== -->
       <div id="students" class="tab-content hidden">
         <div class="card">
-          <div class="card-header">
-            <h3>👨‍🎓 学生列表</h3>
-            <button class="btn btn-sm" onclick="showModal('addStudentModal')" id="addStudentBtn">+ 添加</button>
+          <div class="flex-between" style="margin-bottom:20px;">
+            <div class="card-title" style="margin-bottom:0;">👨‍🎓 Students <span class="title-sub">/ 学生列表</span></div>
+            <button class="btn btn-primary btn-sm" id="addStudentBtn" onclick="showModal('addStudentModal')">+ Add / 添加</button>
           </div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <input type="text" id="studentSearch" placeholder="🔍 搜索学生姓名..." oninput="filterStudents()" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
-          </div>
-          <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="width: 18px; height: 18px;">
-              <span>全选</span>
-            </label>
-            <button class="btn btn-danger btn-sm" onclick="deleteSelectedStudents()" id="batchDeleteBtn" style="width: auto; display: none;">删除选中</button>
-          </div>
-          <div id="studentsList"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Name / 姓名</th>
+                <th>Phone / 电话</th>
+                <th>Total / 总课时</th>
+                <th>Used / 已用</th>
+                <th>Remaining / 剩余</th>
+                <th>Actions / 操作</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTable"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- 付款管理 -->
+      <!-- ===== PAYMENTS ===== -->
       <div id="payments" class="tab-content hidden">
         <div class="card">
-          <h3>💰 付款记录</h3>
+          <div class="card-title">💰 Payment Records <span class="title-sub">/ 付款记录</span></div>
           <div class="form-group">
-            <label>选择学生</label>
-            <select id="paymentStudent" onchange="loadPayments()"></select>
+            <label>Student <span class="label-en">选择学生</span></label>
+            <select id="paymentStudent" onchange="loadPayments()" style="width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;"></select>
           </div>
-          <button class="btn btn-sm" onclick="showModal('addPaymentModal')" style="margin-bottom: 16px;">+ 记录付款</button>
-          <div id="paymentsList"></div>
+          <button class="btn btn-primary btn-sm" onclick="showModal('addPaymentModal')" style="margin-bottom:20px;">+ Record Payment / 记录付款</button>
+          <table>
+            <thead>
+              <tr>
+                <th>Date / 日期</th>
+                <th>Classes / 课时数</th>
+                <th>Amount / 金额</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTable"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- 老师管理 -->
+      <!-- ===== TEACHERS ===== -->
       <div id="teachers" class="tab-content hidden">
         <div class="card">
-          <div class="card-header">
-            <h3>👨‍🏫 老师列表</h3>
-            <button class="btn btn-sm" onclick="showModal('addTeacherModal')">+ 添加</button>
+          <div class="flex-between" style="margin-bottom:20px;">
+            <div class="card-title" style="margin-bottom:0;">👩‍🏫 Teachers <span class="title-sub">/ 老师列表</span></div>
+            <button class="btn btn-primary btn-sm" onclick="showModal('addTeacherModal')">+ Add / 添加</button>
           </div>
-          <div id="teachersList"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Username / 用户名</th>
+                <th>Name / 姓名</th>
+                <th>Joined / 加入时间</th>
+              </tr>
+            </thead>
+            <tbody id="teachersTable"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- 师生关联管理 -->
-      <div id="assignments" class="tab-content hidden">
+      <!-- ===== ASSIGNMENTS ===== -->
+      <div id="assign" class="tab-content hidden">
         <div class="card">
-          <div class="card-header">
-            <h3>👥 师生关联管理</h3>
+          <div class="flex-between" style="margin-bottom:20px;">
+            <div class="card-title" style="margin-bottom:0;">🔗 Teacher-Student Assignments <span class="title-sub">/ 师生关联</span></div>
           </div>
-          <div class="form-group">
-            <label>选择老师</label>
-            <select id="assignmentTeacher" onchange="loadTeacherAssignments()"></select>
+          <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+            <select id="assignTeacher" style="flex:1;min-width:160px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;">
+              <option value="">Select Teacher / 选择老师</option>
+            </select>
+            <select id="assignStudent" style="flex:1;min-width:160px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;">
+              <option value="">Select Student / 选择学生</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="addAssignment()">+ Link / 关联</button>
           </div>
-          <div id="assignmentInfo" style="margin-bottom: 16px;"></div>
-          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-            <button class="btn btn-sm" onclick="addAssignment()" id="addAssignmentBtn" style="display: none;">+ 分配学生</button>
-          </div>
-          <h4 style="margin-bottom: 12px; color: #666; font-size: 14px;">已分配学生</h4>
-          <div id="teacherAssignmentsList"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Teacher / 老师</th>
+                <th>Student / 学生</th>
+                <th>Action / 操作</th>
+              </tr>
+            </thead>
+            <tbody id="assignTable"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- 工资管理 -->
+      <!-- ===== SALARY ===== -->
       <div id="salary" class="tab-content hidden">
         <div class="card">
-          <h3>💵 工资管理</h3>
+          <div class="card-title">💵 Salary Management <span class="title-sub">/ 工资管理</span></div>
           <div class="form-group">
-            <label>选择老师</label>
-            <select id="salaryTeacher" onchange="loadTeacherStats()"></select>
+            <label>Teacher <span class="label-en">选择老师</span></label>
+            <select id="salaryTeacher" onchange="loadTeacherStats()" style="width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;"></select>
           </div>
           <div class="form-group">
-            <label>月份</label>
-            <input type="month" id="salaryMonth" onchange="loadTeacherStats()">
+            <label>Month <span class="label-en">月份</span></label>
+            <input type="month" id="salaryMonth" onchange="loadTeacherStats()" style="width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;">
           </div>
-          <div id="teacherStats" class="card" style="background: #f5f5f5; margin-bottom: 16px;"></div>
+          <div id="teacherStats" style="margin:16px 0; padding:20px; background:#f8f9fa; border-radius:10px; display:none;"></div>
           <div class="form-group">
-            <label>工资金额</label>
-            <input type="number" id="salaryAmount" placeholder="请输入工资金额">
+            <label>Salary Amount <span class="label-en">工资金额 (¥)</span></label>
+            <input type="number" id="salaryAmount" placeholder="Enter amount / 请输入金额" style="width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;">
           </div>
-          <button class="btn btn-success" onclick="paySalary()">💰 发放工资</button>
-        </div>
-        
-        <div class="card">
-          <h3>📋 工资记录</h3>
-          <div id="salaryList"></div>
+          <button class="btn btn-success" onclick="paySalary()">💰 Pay Salary / 发放工资</button>
+
+          <div class="card-title mt-20">📋 Salary Records <span class="title-sub">/ 工资记录</span></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Teacher / 老师</th>
+                <th>Month / 月份</th>
+                <th>Classes / 课时</th>
+                <th>Amount / 金额</th>
+                <th>Date / 发放日期</th>
+                <th>Status / 状态</th>
+              </tr>
+            </thead>
+            <tbody id="salaryTable"></tbody>
+          </table>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- 添加学生弹窗 -->
+      <!-- ===== PARENT PAGE ===== -->
+      <div id="parentPage" class="tab-content hidden">
+        <div class="parent-hero">
+          <h2>👋 Welcome to VIVO Music School!</h2>
+          <p>欢迎来到 VIVO 音乐学校！Here you can check your child's class balance and history.</p>
+          <p style="font-size:12px; margin-top:4px; color:rgba(255,255,255,0.5);">您可以在这里查看孩子的剩余课时和上课记录。</p>
+          <div class="parent-stats">
+            <div class="parent-stat">
+              <div class="p-label">Child's Name / 孩子姓名</div>
+              <div class="p-value" id="parentStudentName" style="font-size:20px; margin-top:8px;">–</div>
+            </div>
+            <div class="parent-stat">
+              <div class="p-label">Classes Remaining / 剩余课时</div>
+              <div class="p-value highlight" id="parentRemaining">–</div>
+            </div>
+            <div class="parent-stat">
+              <div class="p-label">Total Purchased / 总购课时</div>
+              <div class="p-value" id="parentTotal">–</div>
+            </div>
+            <div class="parent-stat">
+              <div class="p-label">Classes Completed / 已上课时</div>
+              <div class="p-value" id="parentUsed">–</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📚 Class History <span class="title-sub">/ 上课记录</span></div>
+          <div id="parentRecordsList">
+            <div class="no-data">
+              <div class="no-data-icon">📋</div>
+              <div>No records yet / 暂无记录</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /mainPage -->
+
+  <!-- ========== MODALS ========== -->
+
+  <!-- Add Student -->
   <div id="addStudentModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>添加学生</h3>
+        <div class="modal-title">
+          <h3>Add Student / 添加学生</h3>
+          <p>Fill in the student's basic info / 填写学生基本信息</p>
+        </div>
         <span class="close" onclick="hideModal('addStudentModal')">&times;</span>
       </div>
       <div class="form-group">
-        <label>姓名</label>
-        <input type="text" id="newStudentName" placeholder="请输入学生姓名">
+        <label>Full Name <span class="label-en">姓名</span></label>
+        <input type="text" id="newStudentName" placeholder="Student's full name / 学生姓名">
       </div>
       <div class="form-group">
-        <label>电话</label>
-        <input type="tel" id="newStudentPhone" placeholder="请输入联系电话">
+        <label>Phone / Contact <span class="label-en">联系电话</span></label>
+        <input type="text" id="newStudentPhone" placeholder="Phone number / 联系电话">
       </div>
-      <button class="btn btn-success" onclick="addStudent()">保存</button>
+      <button class="btn btn-success btn-block" onclick="addStudent()">Save / 保存</button>
     </div>
   </div>
 
-  <!-- 记录付款弹窗 -->
+  <!-- Add Payment -->
   <div id="addPaymentModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>记录付款</h3>
+        <div class="modal-title">
+          <h3>Record Payment / 记录付款</h3>
+          <p>Add purchased classes / 添加购买课时</p>
+        </div>
         <span class="close" onclick="hideModal('addPaymentModal')">&times;</span>
       </div>
       <div class="form-group">
-        <label>课时数</label>
+        <label>Number of Classes <span class="label-en">购买课时数</span></label>
         <input type="number" id="paymentClasses" value="10" min="1">
       </div>
       <div class="form-group">
-        <label>金额 (¥)</label>
-        <input type="number" id="paymentAmount" placeholder="请输入金额">
+        <label>Amount Paid <span class="label-en">付款金额 (¥)</span></label>
+        <input type="number" id="paymentAmount" placeholder="Amount / 金额">
       </div>
-      <div class="form-group">
-        <label>付款方式</label>
-        <select id="paymentMethod">
-          <option value="cash">💵 现金</option>
-          <option value="transfer">📱 转账</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>备注（如买书等）</label>
-        <input type="text" id="paymentRemark" placeholder="可选：输入备注信息">
-      </div>
-      <button class="btn btn-success" onclick="addPayment()">保存</button>
+      <button class="btn btn-success btn-block" onclick="addPayment()">Save / 保存</button>
     </div>
   </div>
 
-  <!-- 添加老师弹窗 -->
+  <!-- Add Teacher -->
   <div id="addTeacherModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>添加老师</h3>
+        <div class="modal-title">
+          <h3>Add Teacher / 添加老师</h3>
+          <p>Create a teacher account / 创建老师账号</p>
+        </div>
         <span class="close" onclick="hideModal('addTeacherModal')">&times;</span>
       </div>
       <div class="form-group">
-        <label>用户名</label>
-        <input type="text" id="newTeacherUsername" placeholder="请输入用户名">
+        <label>Username <span class="label-en">用户名</span></label>
+        <input type="text" id="newTeacherUsername" placeholder="Login username / 登录用户名">
       </div>
       <div class="form-group">
-        <label>密码</label>
-        <input type="password" id="newTeacherPassword" placeholder="请输入密码">
+        <label>Password <span class="label-en">密码</span></label>
+        <input type="password" id="newTeacherPassword" placeholder="Password / 密码">
       </div>
       <div class="form-group">
-        <label>姓名</label>
-        <input type="text" id="newTeacherName" placeholder="请输入姓名">
+        <label>Full Name <span class="label-en">姓名</span></label>
+        <input type="text" id="newTeacherName" placeholder="Teacher's name / 老师姓名">
       </div>
-      <button class="btn btn-success" onclick="addTeacher()">保存</button>
+      <button class="btn btn-success btn-block" onclick="addTeacher()">Save / 保存</button>
     </div>
   </div>
 
-  <!-- 分配学生弹窗 -->
-  <div id="addAssignmentModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>分配学生给老师</h3>
-        <span class="close" onclick="hideModal('addAssignmentModal')">&times;</span>
-      </div>
-      <div class="form-group">
-        <label>选择学生</label>
-        <select id="assignmentStudentSelect">
-          <option value="">请选择学生</option>
-        </select>
-      </div>
-      <button class="btn btn-success" onclick="confirmAddAssignment()">确认分配</button>
-    </div>
-  </div>
-
-  <!-- 设置家长账号弹窗 -->
+  <!-- Set Parent Account -->
   <div id="parentAccountModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>👨‍👩‍👧 家长登录账号</h3>
+        <div class="modal-title">
+          <h3>Set Parent Account / 设置家长账号</h3>
+          <p>Create login for parent / 为家长创建登录账号</p>
+        </div>
         <span class="close" onclick="hideModal('parentAccountModal')">&times;</span>
       </div>
-      <p id="parentAccountStudentName" style="color:#666; margin-bottom:16px; font-size:14px;"></p>
+      <div id="parentAccountInfo" style="background:#f8f9fa; border-radius:8px; padding:14px; margin-bottom:20px; font-size:14px; color:#555;"></div>
       <div class="form-group">
-        <label>登录账号</label>
-        <input type="text" id="parentUsername" placeholder="设置家长登录账号">
+        <label>Parent Username <span class="label-en">家长用户名</span></label>
+        <input type="text" id="parentUsername" placeholder="e.g. parent_john / 如 parent001">
       </div>
       <div class="form-group">
-        <label>登录密码</label>
-        <input type="password" id="parentPassword" placeholder="设置登录密码">
+        <label>Password <span class="label-en">密码</span></label>
+        <input type="password" id="parentPassword" placeholder="Set a password / 设置密码" value="123456">
       </div>
-      <button class="btn btn-success" onclick="saveParentAccount()">保存账号</button>
+      <button class="btn btn-success btn-block" onclick="saveParentAccount()">Save / 保存</button>
     </div>
   </div>
 

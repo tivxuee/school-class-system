@@ -16,12 +16,12 @@ const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
-  // 用户表
+  // 用户表（支持 admin、teacher、parent）
   db.run(`CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('admin', 'teacher')),
+    role TEXT NOT NULL CHECK(role IN ('admin', 'teacher', 'parent')),
     name TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
@@ -33,7 +33,9 @@ db.serialize(() => {
     phone TEXT,
     total_classes INTEGER DEFAULT 0,
     used_classes INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    parent_user_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (parent_user_id) REFERENCES users(id)
   )`);
 
   // 付款记录表
@@ -55,6 +57,7 @@ db.serialize(() => {
     student_id INTEGER NOT NULL,
     photo_path TEXT,
     class_date DATE NOT NULL,
+    duration INTEGER DEFAULT 60,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (teacher_id) REFERENCES users(id),
     FOREIGN KEY (student_id) REFERENCES students(id)
