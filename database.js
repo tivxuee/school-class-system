@@ -78,24 +78,11 @@ db.serialize(() => {
     UNIQUE(teacher_id, student_id)
   )`);
 
-  // 插入默认admin账号
+  // 插入默认admin账号（仅首次，忽略重复）
   const bcrypt = require('bcryptjs');
   const hashedPassword = bcrypt.hashSync('admin123', 10);
   db.run(`INSERT OR IGNORE INTO users (username, password, role, name) VALUES (?, ?, ?, ?)`,
-    ['admin', hashedPassword, 'admin', '管理员']);
-
-  // 插入测试数据 - 学生
-  const testStudents = [
-    { name: '王小明', phone: '13800138001' },
-    { name: '李小红', phone: '13800138002' },
-    { name: '张小刚', phone: '13800138003' },
-    { name: '刘小丽', phone: '13800138004' },
-    { name: '陈小强', phone: '13800138005' }
-  ];
-  
-  testStudents.forEach(s => {
-    db.run(`INSERT OR IGNORE INTO students (name, phone) VALUES (?, ?)`, [s.name, s.phone]);
-  });
+    ['admin', hashedPassword, 'admin', 'Admin']);
 });
 
 module.exports = db;

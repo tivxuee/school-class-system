@@ -34,6 +34,8 @@
     .btn-danger { background: #ff4d4f; color: white; }
     .btn-sm { padding: 6px 14px; font-size: 13px; }
     .login-hint { text-align: center; margin-top: 20px; color: #bbb; font-size: 12px; }
+    .login-error { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .login-error:not(.hidden) { display: block; }
 
     /* ===== HEADER ===== */
     .header {
@@ -44,6 +46,8 @@
     }
     .header-brand { display: flex; align-items: center; gap: 12px; }
     .header-brand .brand-icon { font-size: 26px; }
+    .logo-img { width: 80px; height: auto; margin: 0 auto 16px; display: block; }
+    .brand-logo { width: 36px; height: auto; }
     .header-brand h1 { font-size: 18px; color: white; font-weight: 700; letter-spacing: 0.5px; }
     .header-brand h1 span { color: #e94560; }
     .user-info { display: flex; align-items: center; gap: 12px; }
@@ -101,13 +105,37 @@
     .close { font-size: 22px; cursor: pointer; color: #bbb; line-height: 1; padding: 2px; }
     .close:hover { color: #666; }
 
-    /* ===== CAMERA ===== */
-    .camera-container { position: relative; width: 100%; max-width: 400px; margin: 0 auto; border-radius: 8px; overflow: hidden; background: #000; }
-    #video { width: 100%; display: block; }
+    /* ===== PHOTO SECTION ===== */
+    .photo-section { width: 100%; max-width: 480px; margin: 0 auto; }
+    .photo-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .photo-tab { flex: 1; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .photo-tab:hover { border-color: #e94560; }
+    .photo-tab.active { background: #e94560; border-color: #e94560; color: white; }
+    .photo-panel { transition: all 0.3s; }
+    .photo-panel.hidden { display: none; }
+    .camera-container { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4/3; }
+    #video { width: 100%; height: 100%; object-fit: cover; display: block; }
     #canvas { display: none; }
-    .camera-btn { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); width: 56px; height: 56px; border-radius: 50%; background: #e94560; border: 4px solid white; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    .camera-btn:hover { background: #c73652; }
-    .preview-img { max-width: 100%; border-radius: 8px; margin-top: 10px; display: block; }
+    .camera-status { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fff; z-index: 5; }
+    .camera-status-icon { font-size: 48px; display: block; margin-bottom: 8px; animation: pulse 1.5s infinite; }
+    .camera-status-text { font-size: 14px; opacity: 0.8; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .camera-controls { position: absolute; bottom: 16px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 30px; }
+    .camera-btn { width: 64px; height: 64px; border-radius: 50%; background: #e94560; border: 4px solid white; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: all 0.2s; }
+    .camera-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(233,69,96,0.5); }
+    .camera-btn:active { transform: scale(0.95); background: #c73652; }
+    .camera-btn.capturing { animation: capture-flash 0.3s; }
+    @keyframes capture-flash { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,1); } 50% { box-shadow: 0 0 0 20px rgba(255,255,255,0); } 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
+    .camera-control-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.5); color: white; font-size: 18px; cursor: pointer; transition: all 0.2s; }
+    .camera-control-btn:hover { background: rgba(0,0,0,0.7); transform: scale(1.1); }
+    .camera-control-btn:active { transform: scale(0.95); }
+    .camera-control-btn.active { background: rgba(233,69,96,0.8); border-color: #e94560; }
+    .camera-hint { text-align: center; color: #888; font-size: 13px; margin-top: 8px; }
+    .upload-area { border: 2px dashed #ddd; border-radius: 12px; background: #fafafa; min-height: 200px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+    .upload-area:hover { border-color: #e94560; background: #fff5f7; }
+    .upload-placeholder { text-align: center; padding: 40px; color: #666; }
+    .preview-img { max-width: 100%; border-radius: 12px; margin-top: 12px; display: block; border: 3px solid #e94560; }
+    .preview-img.hidden { display: none; }
 
     /* ===== PARENT PAGE ===== */
     .parent-hero { background: linear-gradient(135deg, #1a1a2e, #0f3460); color: white; border-radius: 16px; padding: 32px; margin-bottom: 24px; }
@@ -131,6 +159,17 @@
 
     /* ===== UTILS ===== */
     .hidden { display: none !important; }
+    .name-warning {
+      margin-top: 6px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid #ffd591;
+      background: #fffbe6;
+      color: #ad6800;
+    }
+    .name-warning strong { color: #d46b08; }
     .text-center { text-align: center; }
     .text-muted { color: #aaa; font-size: 13px; }
     .mt-12 { margin-top: 12px; }
@@ -142,13 +181,32 @@
     .no-data { text-align: center; color: #bbb; padding: 40px 0; }
     .no-data .no-data-icon { font-size: 40px; margin-bottom: 8px; }
 
+    /* ===== MOBILE CHECK-IN ===== */
+    .btn-lg { padding: 16px 28px; font-size: 16px; }
+    .checkin-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .checkin-actions .btn { flex: 1; min-width: 140px; }
+
     @media (max-width: 600px) {
       .stats { grid-template-columns: 1fr; }
       .parent-stats { grid-template-columns: 1fr; }
-      .content { padding: 16px; }
-      .header { padding: 0 16px; }
-      .nav { padding: 0 8px; }
-      .modal-content { padding: 20px; }
+      .content { padding: 12px; }
+      .header { padding: 0 12px; height: 56px; }
+      .header-brand h1 { font-size: 15px; }
+      .brand-logo { width: 30px; }
+      .logo-img { width: 70px; }
+      .nav { padding: 0 4px; gap: 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .nav-btn { padding: 12px 10px; font-size: 12px; }
+      .card { padding: 16px; border-radius: 10px; }
+      .card-title { font-size: 15px; }
+      .modal-content { padding: 20px; margin: 10px; max-height: 95vh; }
+      .camera-container { border-radius: 10px; }
+      #video { min-height: 240px; }
+      .camera-btn { width: 56px; height: 56px; bottom: 16px; }
+      .checkin-actions { flex-direction: column; gap: 10px; }
+      .checkin-actions .btn { width: 100%; min-width: auto; }
+      table { font-size: 13px; }
+      th, td { padding: 10px 8px; }
+      .btn-lg { padding: 14px 20px; font-size: 15px; }
     }
   </style>
 </head>
@@ -158,7 +216,7 @@
   <div id="loginPage" class="login-wrap">
     <div class="login-box">
       <div class="login-logo">
-        <span class="logo-icon">🎵</span>
+        <img src="/logo.jpg" alt="VIVO MUSIC SCHOOL" class="logo-img">
         <h1>VIVO <span style="color:#e94560">MUSIC</span> SCHOOL</h1>
         <p>Class Management System &nbsp;·&nbsp; 课时管理系统</p>
       </div>
@@ -173,9 +231,9 @@
           <input type="password" id="password" placeholder="Enter your password / 请输入密码" autocomplete="current-password"
             onkeydown="if(event.key==='Enter'){login();}">
         </div>
+        <div id="loginError" class="login-error hidden"></div>
         <button type="button" class="btn btn-primary btn-block" onclick="login()">Log In &nbsp;/&nbsp; 登录</button>
       </div>
-      <p class="login-hint">Default admin: admin / admin123</p>
     </div>
   </div>
 
@@ -183,7 +241,7 @@
   <div id="mainPage" class="hidden">
     <div class="header">
       <div class="header-brand">
-        <span class="brand-icon">🎵</span>
+        <img src="/logo.jpg" alt="VIVO MUSIC SCHOOL" class="brand-logo">
         <h1>VIVO <span>MUSIC</span> SCHOOL</h1>
       </div>
       <div class="user-info">
@@ -260,15 +318,53 @@
               <span>min / 分钟</span>
             </div>
           </div>
-          <div class="camera-container mt-16">
-            <video id="video" autoplay playsinline></video>
-            <canvas id="canvas"></canvas>
-            <button class="camera-btn" onclick="takePhoto()" title="Take Photo / 拍照"></button>
+          <div class="photo-section mt-16">
+            <!-- Photo mode tabs -->
+            <div class="photo-tabs">
+              <button class="photo-tab active" onclick="switchPhotoMode('camera')" id="tabCamera">
+                📷 Take Photo / 拍照
+              </button>
+              <button class="photo-tab" onclick="switchPhotoMode('upload')" id="tabUpload">
+                📤 Upload / 上传照片
+              </button>
+            </div>
+            
+            <!-- Camera mode -->
+            <div class="photo-panel" id="cameraPanel">
+              <div class="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                <div class="camera-status" id="cameraStatus">
+                  <span class="camera-status-icon">📷</span>
+                  <span id="cameraStatusText">Initializing... / 初始化中...</span>
+                </div>
+                <div class="camera-controls">
+                  <button class="camera-control-btn" onclick="switchCamera()" id="switchCameraBtn" title="Switch / 切换">🔄</button>
+                  <button class="camera-btn" onclick="takePhoto()" id="captureBtn" title="Take Photo / 拍照"></button>
+                  <div style="width:40px;"></div>
+                </div>
+              </div>
+              <p class="camera-hint">Click red button to capture / 点击红色按钮拍照</p>
+            </div>
+            
+            <!-- Upload mode -->
+            <div class="photo-panel hidden" id="uploadPanel">
+              <div class="upload-area" id="uploadArea">
+                <input type="file" id="photoUpload" accept="image/*" onchange="handlePhotoUpload(this)" style="display:none;">
+                <div class="upload-placeholder" onclick="document.getElementById('photoUpload').click()">
+                  <span style="font-size:48px;">📷</span>
+                  <p style="margin-top:12px;">Click to select photo<br/>点击选择照片</p>
+                  <p style="font-size:12px;color:#888;margin-top:8px;">Supports: JPG, PNG, HEIC<br/>支持：JPG、PNG、HEIC</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Photo preview -->
+            <img id="photoPreview" class="preview-img hidden">
           </div>
-          <img id="photoPreview" class="preview-img hidden">
-          <div class="flex gap-8 mt-20">
-            <button class="btn btn-success" onclick="submitCheckin()">✅ Confirm / 确认签到</button>
-            <button class="btn" style="background:#f0f0f0;color:#666;" onclick="retakePhoto()">🔄 Retake / 重拍</button>
+          <div class="checkin-actions flex gap-8 mt-20">
+            <button class="btn btn-success btn-lg" onclick="submitCheckin()">✅ Confirm / 确认签到</button>
+            <button class="btn btn-secondary btn-lg" onclick="retakePhoto()">🔄 Retake / 重拍</button>
           </div>
         </div>
       </div>
@@ -278,7 +374,7 @@
         <div class="card">
           <div class="flex-between" style="margin-bottom:20px;">
             <div class="card-title" style="margin-bottom:0;">👨‍🎓 Students <span class="title-sub">/ 学生列表</span></div>
-            <button class="btn btn-primary btn-sm" id="addStudentBtn" onclick="showModal('addStudentModal')">+ Add / 添加</button>
+            <button class="btn btn-primary btn-sm" id="addStudentBtn" onclick="openAddStudentModal()">+ Add / 添加</button>
           </div>
           <table>
             <thead>
@@ -456,7 +552,8 @@
       </div>
       <div class="form-group">
         <label>Full Name <span class="label-en">姓名</span></label>
-        <input type="text" id="newStudentName" placeholder="Student's full name / 学生姓名">
+        <input type="text" id="newStudentName" placeholder="Student's full name / 学生姓名" oninput="checkDuplicateName()">
+        <div id="nameDuplicateWarning" class="name-warning hidden"></div>
       </div>
       <div class="form-group">
         <label>Phone / Contact <span class="label-en">联系电话</span></label>
@@ -511,6 +608,20 @@
         <input type="text" id="newTeacherName" placeholder="Teacher's name / 老师姓名">
       </div>
       <button class="btn btn-success btn-block" onclick="addTeacher()">Save / 保存</button>
+    </div>
+  </div>
+
+  <!-- Teacher Students Modal -->
+  <div id="teacherStudentsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">
+          <h3 id="teacherStudentsTitle">Students / 学生</h3>
+          <p>Students assigned to this teacher / 关联此老师的学生</p>
+        </div>
+        <span class="close" onclick="hideModal('teacherStudentsModal')">&times;</span>
+      </div>
+      <div id="teacherStudentsList" style="max-height:400px;overflow-y:auto;"></div>
     </div>
   </div>
 

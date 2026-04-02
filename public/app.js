@@ -3,6 +3,7 @@ let currentUser = null;
 let stream = null;
 let photoBlob = null;
 let currentStudentIdForParent = null;
+let cachedStudents = []; // 缓存学生列表，用于姓名重复检测
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,6 +24,18 @@ document.addEventListener('DOMContentLoaded', () => {
 async function login() {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
+  const errorDiv = document.getElementById('loginError');
+  
+  // Clear previous error
+  errorDiv.classList.add('hidden');
+  errorDiv.textContent = '';
+  
+  if (!username || !password) {
+    errorDiv.textContent = 'Please enter username and password / 请输入用户名和密码';
+    errorDiv.classList.remove('hidden');
+    return;
+  }
+  
   try {
     const res = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -36,10 +49,19 @@ async function login() {
       currentUser = data;
       showMainPage();
     } else {
-      alert((data.error || 'Login failed / 登录失败') + '\n\nPlease check your username and password.\n请检查用户名和密码。');
+      // Show specific error message
+      let errorMsg = data.error || 'Login failed / 登录失败';
+      if (res.status === 401) {
+        errorMsg = 'Incorrect password / 密码错误';
+      } else if (res.status === 404) {
+        errorMsg = 'User not found / 用户不存在';
+      }
+      errorDiv.textContent = errorMsg;
+      errorDiv.classList.remove('hidden');
     }
   } catch (err) {
-    alert('Network error / 网络错误，请稍后再试。');
+    errorDiv.textContent = 'Network error / 网络错误，请稍后再试';
+    errorDiv.classList.remove('hidden');
   }
 }
 
@@ -172,6 +194,7 @@ async function loadDashboard() {
 async function loadStudents() {
   try {
     const students = await api('/students');
+    cachedStudents = students; // 缓存供姓名重复检测用
     const isAdmin = currentUser.role === 'admin';
     const tbody = document.getElementById('studentsTable');
     if (!students.length) {
@@ -208,10 +231,71 @@ async function loadStudents() {
   }
 }
 
+// 实时检测姓名是否重复
+function checkDuplicateName() {
+  const nameInput = document.getElementById('newStudentName');
+  const warningEl = document.getElementById('nameDuplicateWarning');
+  const name = nameInput.value.trim();
+
+  if (!name) {
+    warningEl.classList.add('hidden');
+    return;
+  }
+
+  const lowerName = name.toLowerCase();
+  const matches = cachedStudents.filter(s => s.name.toLowerCase() === lowerName);
+
+  if (matches.length > 0) {
+    // 已有完全重名，生成建议名字
+    const baseName = name.replace(/\s*\d+$/, '').trim();
+    let suffix = 2;
+    const existingSuffixes = cachedStudents
+      .filter(s => s.name.toLowerCase().startsWith(baseName.toLowerCase()))
+      .map(s => {
+        const m = s.name.match(/\s*(\d+)$/);
+        return m ? parseInt(m[1]) : 0;
+      });
+    while (existingSuffixes.includes(suffix)) suffix++;
+    const suggested = `${baseName} ${suffix}`;
+
+    warningEl.innerHTML = `<strong>⚠️ Duplicate name detected!</strong><br>
+      "<strong>${name}</strong>" already exists.<br>
+      💡 Suggestion / 建议: <strong>${suggested}</strong><br>
+      <span style="color:#8c8c8c;font-size:12px;">Click the name field above to edit / 点击上方姓名输入框修改</span>`;
+    warningEl.classList.remove('hidden');
+  } else {
+    warningEl.classList.add('hidden');
+  }
+}
+
 async function addStudent() {
   const name = document.getElementById('newStudentName').value.trim();
   const phone = document.getElementById('newStudentPhone').value.trim();
   if (!name) { alert('Please enter student name / 请输入学生姓名'); return; }
+
+  // 检查重名
+  const lowerName = name.toLowerCase();
+  const exactMatch = cachedStudents.find(s => s.name.toLowerCase() === lowerName);
+  if (exactMatch) {
+    const baseName = name.replace(/\s*\d+$/, '').trim();
+    let suffix = 2;
+    const existingSuffixes = cachedStudents
+      .filter(s => s.name.toLowerCase().startsWith(baseName.toLowerCase()))
+      .map(s => {
+        const m = s.name.match(/\s*(\d+)$/);
+        return m ? parseInt(m[1]) : 0;
+      });
+    while (existingSuffixes.includes(suffix)) suffix++;
+    const suggested = `${baseName} ${suffix}`;
+    const useSuggested = confirm(
+      `⚠️ Duplicate name detected!\n"${name}" already exists (${exactMatch.phone || 'no phone'}).\n\n💡 Suggested name / 建议姓名: ${suggested}\n\nClick OK to use the suggested name, or Cancel to keep "${name}".\n点击"确定"使用建议姓名，或"取消"保持原名。`
+    );
+    if (useSuggested) {
+      document.getElementById('newStudentName').value = suggested;
+      return; // 让用户确认新名字
+    }
+  }
+
   try {
     await api('/students', {
       method: 'POST',
@@ -288,35 +372,185 @@ async function loadStudentsForCheckin() {
   } catch (err) { console.error(err); }
 }
 
+// Camera state
+let currentFacingMode = 'environment';
+let currentPhotoMode = 'camera';
+
+// Initialize camera when checkin tab is shown
 async function initCamera() {
+  if (currentPhotoMode !== 'camera') return;
+  
+  const statusEl = document.getElementById('cameraStatus');
+  const statusText = document.getElementById('cameraStatusText');
+  const video = document.getElementById('video');
+  
+  if (statusEl) {
+    statusEl.style.display = 'flex';
+    statusEl.querySelector('.camera-status-icon').textContent = '📷';
+    statusText.textContent = 'Initializing... / 初始化中...';
+    statusText.style.color = '#fff';
+  }
+  
   try {
-    if (stream) return; // already running
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    document.getElementById('video').srcObject = stream;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    
+    const constraints = {
+      video: {
+        facingMode: currentFacingMode,
+        width: { ideal: 1280 },
+        height: { ideal: 960 }
+      }
+    };
+    
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    
+    if (statusEl) statusEl.style.display = 'none';
+    console.log('Camera ready / 摄像头已就绪');
   } catch (err) {
-    console.log('Camera not available / 无法访问摄像头:', err);
+    console.error('Camera error:', err);
+    if (statusEl) {
+      statusEl.style.display = 'flex';
+      statusEl.querySelector('.camera-status-icon').textContent = '❌';
+      statusText.textContent = 'Camera unavailable / 摄像头不可用';
+      statusText.style.color = '#ff6b6b';
+    }
   }
 }
 
+// Switch between camera and upload mode
+function switchPhotoMode(mode) {
+  currentPhotoMode = mode;
+  
+  const tabCamera = document.getElementById('tabCamera');
+  const tabUpload = document.getElementById('tabUpload');
+  const cameraPanel = document.getElementById('cameraPanel');
+  const uploadPanel = document.getElementById('uploadPanel');
+  
+  if (mode === 'camera') {
+    tabCamera.classList.add('active');
+    tabUpload.classList.remove('active');
+    cameraPanel.classList.remove('hidden');
+    uploadPanel.classList.add('hidden');
+    initCamera();
+  } else {
+    tabCamera.classList.remove('active');
+    tabUpload.classList.add('active');
+    cameraPanel.classList.add('hidden');
+    uploadPanel.classList.remove('hidden');
+    // Stop camera when switching to upload
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+  }
+}
+
+async function switchCamera() {
+  currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+  const btn = document.getElementById('switchCameraBtn');
+  if (btn) btn.classList.toggle('active');
+  await initCamera();
+}
+
+// Handle photo upload from file
+function handlePhotoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file / 请选择图片文件');
+    return;
+  }
+  
+  // Check file size (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    alert('File too large. Max 10MB / 文件过大，最大10MB');
+    return;
+  }
+  
+  photoBlob = file;
+  const preview = document.getElementById('photoPreview');
+  preview.src = URL.createObjectURL(file);
+  preview.classList.remove('hidden');
+  
+  // Update upload area to show selected
+  const uploadArea = document.getElementById('uploadArea');
+  uploadArea.innerHTML = `
+    <div style="text-align:center;padding:20px;">
+      <span style="font-size:32px;">✅</span>
+      <p style="margin-top:8px;color:#52c41a;">Photo selected / 已选择照片</p>
+      <p style="font-size:12px;color:#888;margin-top:4px;">${file.name}</p>
+    </div>
+  `;
+}
+
+// Take photo from camera
 function takePhoto() {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  const statusEl = document.getElementById('cameraStatus');
+  
+  if (!video.srcObject) {
+    alert('Camera not ready / 摄像头未就绪');
+    return;
+  }
+  
   canvas.width = video.videoWidth || 640;
   canvas.height = video.videoHeight || 480;
-  canvas.getContext('2d').drawImage(video, 0, 0);
+  
+  const ctx = canvas.getContext('2d');
+  if (currentFacingMode === 'user') {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, 0, 0);
+  
+  // Flash effect
+  const captureBtn = document.getElementById('captureBtn');
+  captureBtn.classList.add('capturing');
+  setTimeout(() => captureBtn.classList.remove('capturing'), 300);
+  
   canvas.toBlob(blob => {
     photoBlob = blob;
     const preview = document.getElementById('photoPreview');
     preview.src = URL.createObjectURL(blob);
     preview.classList.remove('hidden');
-    video.classList.add('hidden');
+    video.style.display = 'none';
+    if (statusEl) statusEl.style.display = 'none';
+    document.getElementById('cameraHint').textContent = 'Photo captured! / 照片已拍摄！';
   }, 'image/jpeg', 0.85);
 }
 
+// Reset photo - go back to camera/upload selection
 function retakePhoto() {
   photoBlob = null;
-  document.getElementById('photoPreview').classList.add('hidden');
-  document.getElementById('video').classList.remove('hidden');
+  const preview = document.getElementById('photoPreview');
+  const video = document.getElementById('video');
+  const hint = document.getElementById('cameraHint');
+  const uploadArea = document.getElementById('uploadArea');
+  
+  preview.classList.add('hidden');
+  
+  if (currentPhotoMode === 'camera') {
+    video.style.display = 'block';
+    if (hint) hint.textContent = 'Click red button to capture / 点击红色按钮拍照';
+    initCamera();
+  } else {
+    // Reset upload area
+    uploadArea.innerHTML = `
+      <input type="file" id="photoUpload" accept="image/*" onchange="handlePhotoUpload(this)" style="display:none;">
+      <div class="upload-placeholder" onclick="document.getElementById('photoUpload').click()">
+        <span style="font-size:48px;">📷</span>
+        <p style="margin-top:12px;">Click to select photo<br/>点击选择照片</p>
+        <p style="font-size:12px;color:#888;margin-top:8px;">Supports: JPG, PNG, HEIC<br/>支持：JPG、PNG、HEIC</p>
+      </div>
+    `;
+  }
 }
 
 async function submitCheckin() {
@@ -358,7 +592,7 @@ async function loadTeachers() {
     const teachers = await api('/teachers');
     const tbody = document.getElementById('teachersTable');
     if (!teachers.length) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted" style="padding:20px">No teachers yet / 暂无老师</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:20px">No teachers yet / 暂无老师</td></tr>';
       return;
     }
     tbody.innerHTML = teachers.map(t => `
@@ -366,9 +600,32 @@ async function loadTeachers() {
         <td>${t.username}</td>
         <td>${t.name}</td>
         <td>${t.created_at ? t.created_at.split('T')[0] : '–'}</td>
+        <td><button class="btn btn-sm btn-info" onclick="viewTeacherStudents(${t.id}, '${t.name}')">👥 View Students / 查看学生</button></td>
       </tr>
     `).join('');
   } catch (err) { console.error(err); }
+}
+
+async function viewTeacherStudents(teacherId, teacherName) {
+  document.getElementById('teacherStudentsTitle').textContent = `Students of ${teacherName}`;
+  const list = document.getElementById('teacherStudentsList');
+  list.innerHTML = '<div class="text-muted" style="padding:20px;text-align:center;">Loading... / 加载中...</div>';
+  showModal('teacherStudentsModal');
+  try {
+    const students = await api(`/teachers/${teacherId}/students`);
+    if (!students.length) {
+      list.innerHTML = '<div class="text-muted" style="padding:20px;text-align:center;">No students assigned / 暂无关联学生</div>';
+    } else {
+      list.innerHTML = students.map(s => `
+        <div style="padding:10px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
+          <span>${s.name}</span>
+          <span style="font-size:12px;color:#888;">${s.instrument || '–'}</span>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff4d4f;">Failed to load / 加载失败</div>';
+  }
 }
 
 async function addTeacher() {
@@ -603,7 +860,13 @@ async function deleteAssignment(id) {
   }
 }
 
-// ========== MODAL ==========
+// 打开添加学生弹窗
+function openAddStudentModal() {
+  showModal('addStudentModal');
+  document.getElementById('newStudentName').value = '';
+  document.getElementById('newStudentPhone').value = '';
+  document.getElementById('nameDuplicateWarning').classList.add('hidden');
+}
 function showModal(id) { document.getElementById(id).classList.add('active'); }
 function hideModal(id) { document.getElementById(id).classList.remove('active'); }
 
