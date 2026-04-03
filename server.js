@@ -42,8 +42,14 @@ const auth = (req, res, next) => {
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
-    if (err || !user || !bcrypt.compareSync(password, user.password)) {
-      return res.status(401).json({ error: '账号或密码错误' });
+    if (err) {
+      return res.status(500).json({ error: 'Server error / 服务器错误' });
+    }
+    if (!user) {
+      return res.status(404).json({ error: 'User not found / 用户不存在' });
+    }
+    if (!bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ error: 'Incorrect password / 密码错误' });
     }
     const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, JWT_SECRET);
     res.json({ token, id: user.id, role: user.role, name: user.name });
@@ -274,7 +280,10 @@ app.delete('/api/teachers/:id', auth, (req, res) => {
 // ========== 师生关联管理 ==========
 // 获取老师的学生列表
 app.get('/api/teachers/:id/students', auth, (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: '无权限' });
+  // 允许 admin 或老师自己查看
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(req.params.id)) {
+    return res.status(403).json({ error: '无权限' });
+  }
   db.all(`
     SELECT s.* FROM students s
     JOIN teacher_students ts ON s.id = ts.student_id
@@ -306,6 +315,41 @@ app.delete('/api/students/:id/teachers/:teacher_id', auth, (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: '移除成功' });
     });
+});
+
+// 获取所有师生关联
+app.get('/api/assignments', auth, (req, res) => {
+  db.all(`
+    SELECT ts.id, ts.teacher_id, ts.student_id,
+           t.name as teacher_name, s.name as student_name
+    FROM teacher_students ts
+    JOIN users t ON ts.teacher_id = t.id
+    JOIN students s ON ts.student_id = s.id
+    ORDER BY t.name, s.name
+  `, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// 创建师生关联
+app.post('/api/assignments', auth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: '无权限' });
+  const { teacher_id, student_id } = req.body;
+  db.run('INSERT OR IGNORE INTO teacher_students (teacher_id, student_id) VALUES (?, ?)',
+    [teacher_id, student_id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID, message: '关联成功' });
+    });
+});
+
+// 删除师生关联
+app.delete('/api/assignments/:id', auth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: '无权限' });
+  db.run('DELETE FROM teacher_students WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: '删除成功' });
+  });
 });
 
 // 获取未分配老师的学生
