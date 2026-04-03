@@ -1,7 +1,13 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
-const db = new sqlite3.Database(path.join(__dirname, 'school.db'));
+// Railway Volume 挂载在 /data，本地开发用项目目录
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const DB_PATH = path.join(DATA_DIR, 'school.db');
+const db = new sqlite3.Database(DB_PATH);
 
 db.serialize(() => {
   // 用户表（admin、老师、家长）

@@ -9,7 +9,7 @@ const db = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = 'school-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'school-secret-key';
 
 app.use(cors());
 app.use(express.json());
